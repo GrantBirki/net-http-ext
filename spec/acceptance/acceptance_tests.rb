@@ -61,6 +61,45 @@ describe "Net::HTTP::Ext" do
       expect(response.body).to include("POST request received with payload: #{payload.to_json}")
       expect(response.body).to include('"name":"test"')
     end
+
+    it "successfully makes a POST request with JSON payload that has already been cast with to_json and no headers are set" do
+      payload = { name: "test" }
+
+      response = http.post(
+        "/resource",
+        payload: payload.to_json
+      )
+      expect(response).to be_a(Net::HTTPResponse)
+      expect(response.code).to eq("201")
+      expect(response.body).to include("POST request received with payload: #{payload.to_json}")
+      expect(response.body).to include('"name":"test"')
+    end
+
+    it "successfully makes a POST request with JSON payload that has already been cast with to_json and headers are set" do
+      payload = { name: "test" }
+
+      response = http.post(
+        "/resource",
+        payload: payload.to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+      expect(response).to be_a(Net::HTTPResponse)
+      expect(response.code).to eq("201")
+      expect(response.body).to include("POST request received with payload: #{payload.to_json}")
+      expect(response.body).to include('"name":"test"')
+    end
+
+    it "successfully makes a POST request with a JSON payload that is not a symbolized hash" do
+      payload = { "name" => "test" }
+      response = http.post(
+        "/resource",
+        payload: payload.to_json
+      )
+      expect(response).to be_a(Net::HTTPResponse)
+      expect(response.code).to eq("201")
+      expect(response.body).to include("POST request received with payload: #{payload.to_json}")
+      expect(response.body).to include('"name":"test"')
+    end
   end
 
   describe "#put" do

@@ -320,19 +320,72 @@ class Net::HTTP::Ext
   end
 
   def set_request_body(request, params, headers)
-    return if params.nil? || params.empty?
+    # Early return for nil or empty params
+    return if params.nil? || (params.respond_to?(:empty?) && params.empty?)
 
-    content_type = headers["content-type"]
-    request.body = if content_type.nil?
-                     headers["content-type"] = "application/json"
-                     params.to_json
-                   elsif content_type.include?("x-www-form-urlencoded")
-                     URI.encode_www_form(params)
-                   elsif params.is_a?(String)
-                     params
-                   else
-                     params.to_json
-                   end
+    begin
+      # First handle the case where params is already a string
+      if params.is_a?(String)
+        # Use the string directly
+        request.body = params
+        # Set content-type if not present
+        headers["content-type"] ||= "application/octet-stream"
+      else
+        # Get content type, normalize by downcasing and trimming
+        content_type = headers["content-type"]&.downcase&.strip
+
+        # Handle different content types for non-string params
+        request.body = case
+        # No content type specified - use JSON as default
+        when content_type.nil?
+          headers["content-type"] = "application/json"
+          serialize_to_json(params)
+
+        # Form URL-encoded content
+        when content_type.start_with?("application/x-www-form-urlencoded")
+          if params.respond_to?(:to_h)
+            URI.encode_www_form(params.to_h)
+          else
+            raise ArgumentError, "Parameters must be Hash-like for form URL-encoded requests, got #{params.class}"
+          end
+
+        # JSON content type
+        when content_type.start_with?("application/json")
+          serialize_to_json(params)
+
+        # Any other content type - try to convert to JSON as fallback
+        else
+          # For other content types, use the provided format but log a warning
+          @log.warn("Unknown content-type: #{content_type}, attempting to serialize as JSON")
+          serialize_to_json(params)
+        end
+      end
+
+      # Set content length based on the body if not already set
+      request["Content-Length"] ||= request.body.bytesize.to_s if request.body
+    rescue => e
+      error_message = "Failed to set request body: #{e.message}"
+      @log.error(error_message)
+      raise ArgumentError, error_message
+    end
+  end
+
+  # Helper method to safely serialize objects to JSON
+  def serialize_to_json(obj)
+    begin
+      case obj
+      when Hash, Array
+        obj.to_json
+      when ->(o) { o.respond_to?(:to_h) }
+        obj.to_h.to_json
+      when ->(o) { o.respond_to?(:to_json) }
+        obj.to_json
+      else
+        raise ArgumentError, "Cannot convert #{obj.class} to JSON"
+      end
+    rescue JSON::GeneratorError => e
+      raise ArgumentError, "Invalid JSON data: #{e.message}"
+    end
   end
 
   def add_headers_to_request(request, headers)
