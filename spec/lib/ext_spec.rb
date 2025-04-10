@@ -22,6 +22,16 @@ describe Net::HTTP::Ext do
     it "sets the name" do
       expect(subject.instance_variable_get(:@name)).to eq(name)
     end
+
+    it "has sane defaults" do
+      expect(subject.http.open_timeout).to eq(nil)
+      expect(subject.http.read_timeout).to eq(nil)
+      expect(subject.http.keep_alive).to eq(30)
+      expect(subject.http.write_timeout).to eq(nil)
+      expect(subject.http.max_requests).to eq(nil)
+      expect(subject.http.max_retries).to eq(1)
+      expect(subject.instance_variable_get(:@ssl_cert_file)).to eq(nil)
+    end
   end
 
   context "public request methods" do
@@ -63,6 +73,34 @@ describe Net::HTTP::Ext do
       it "makes a HEAD request to the endpoint" do
         expect(subject.head("/test")).to eq(response)
       end
+    end
+  end
+
+  describe "https" do
+    let(:https_endpoint) { "https://#{name}.local" }
+    let(:https_client) { Net::HTTP::Ext.new(https_endpoint, log:, name:) }
+
+    describe "#initialize" do
+      it "sets the endpoint to HTTPS" do
+        expect(https_client.instance_variable_get(:@uri)).to eq(URI.parse(https_endpoint))
+        expect(https_client.http.ssl_version).to eq(:TLSv1_2)
+        expect(https_client.http.verify_mode).to eq(OpenSSL::SSL::VERIFY_PEER)
+        expect(https_client.http.verify_hostname).to eq(true)
+      end
+    end
+  end
+
+  describe "#close!" do
+    it "fully creates and closes a client" do
+      client = Net::HTTP::Ext.new(endpoint, log:, name:)
+      client.close!
+    end
+  end
+
+  describe "#logger" do
+    it "returns the logger" do
+      logger = subject.send(:create_logger)
+      expect(logger).to be_a(Logger)
     end
   end
 
