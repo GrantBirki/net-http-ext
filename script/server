@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+set -e
+
+source script/env "$@"
+
+bundle exec puma config.ru --tag net-http-ext --config config/puma.rb
