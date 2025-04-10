@@ -21,6 +21,9 @@ Gem::Specification.new do |spec|
     "bug_tracker_uri" => "https://github.com/grantbirki/net-http-ext/issues"
   }
 
+  spec.add_dependency "timeout", "~> 0.4.3"
+  spec.add_dependency "json", "~> 2.10", ">= 2.10.2"
+  spec.add_dependency "uri", "~> 1.0", ">= 1.0.3"
   spec.add_dependency "logger", "~> 1"
   spec.add_dependency "net-http-persistent", "~> 4.0", ">= 4.0.5"
 
