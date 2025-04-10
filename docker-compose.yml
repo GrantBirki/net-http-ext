@@ -1,0 +1,16 @@
+services:
+  server:
+    container_name: server
+    build:
+      context: .
+      dockerfile: ./spec/acceptance/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      LOG_LEVEL: DEBUG
+    command: ["script/server"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
