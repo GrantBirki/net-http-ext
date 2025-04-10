@@ -249,7 +249,7 @@ class Net::HTTP::Ext
     options.each do |key, value|
       setter = "#{key}="
       if http.respond_to?(setter)
-        http.send(setter, value)
+        http.send(setter, value) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
       else
         @log.debug("Ignoring unsupported option: #{key}")
       end

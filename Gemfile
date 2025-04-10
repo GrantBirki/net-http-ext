@@ -5,9 +5,8 @@ source "https://rubygems.org"
 gemspec
 
 group :development do
-  gem "puma", "~> 6.6"
-  gem "sinatra", "~> 4.1", ">= 4.1.1"
   gem "irb"
+  gem "puma", "~> 6.6"
   gem "rspec"
   gem "rubocop"
   gem "rubocop-github"
@@ -15,4 +14,5 @@ group :development do
   gem "rubocop-rspec"
   gem "simplecov"
   gem "simplecov-erb"
+  gem "sinatra", "~> 4.1", ">= 4.1.1"
 end

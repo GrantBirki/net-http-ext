@@ -14,3 +14,4 @@ vendor/gems/
 *.crt
 *.csr
 *.secret
+net-http-ext-*.gem
