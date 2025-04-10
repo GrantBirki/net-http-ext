@@ -281,44 +281,57 @@ class Net::HTTP::Ext
   # @param params [Hash] Request parameters or body
   # @return [Net::HTTP::Request] The prepared request object
   def build_request(method, path, headers: {}, params: {})
+    validate_querystring(path, params)
+
+    normalized_headers = prepare_headers(headers)
+    request = initialize_request(method, path, params, normalized_headers)
+
+    add_headers_to_request(request, normalized_headers)
+    request
+  end
+
+  def validate_querystring(path, params)
     if path.include?("?") && !params.empty?
-      raise ArgumentError,
-            "Querystring must be sent via `params` or `path` but not both."
+      raise ArgumentError, "Querystring must be sent via `params` or `path` but not both."
     end
+  end
 
-    # Merge and normalize headers (default headers < request-specific headers)
+  def prepare_headers(headers)
     normalized_headers = @default_headers.dup
-    normalize_headers(headers).each do |key, value|
-      normalized_headers[key] = value
-    end
+    normalize_headers(headers).each { |key, value| normalized_headers[key] = value }
+    validate_host_header(normalized_headers)
+  end
 
-    normalized_headers = validate_host_header(normalized_headers)
-
+  def initialize_request(method, path, params, headers)
     case method
     when :get, :head
       full_path = encode_path_params(path, params)
-      request = VERB_MAP[method].new(full_path)
+      VERB_MAP[method].new(full_path)
     else
       request = VERB_MAP[method].new(path)
-
-      unless params.empty?
-        if !normalized_headers.key?("content-type")
-          normalized_headers["content-type"] = "application/json"
-          request.body = params.to_json
-        elsif normalized_headers["content-type"].include?("x-www-form-urlencoded")
-          request.body = URI.encode_www_form(params)
-        elsif params.is_a?(String)
-          request.body = params
-        else
-          request.body = params.to_json
-        end
-      end
+      set_request_body(request, params, headers)
+      request
     end
+  end
 
-    # Add normalized headers to request
-    normalized_headers.each { |key, value| request[key] = value }
+  def set_request_body(request, params, headers)
+    return if params.empty?
 
-    request
+    content_type = headers["content-type"]
+    request.body = if content_type.nil?
+                     headers["content-type"] = "application/json"
+                     params.to_json
+                   elsif content_type.include?("x-www-form-urlencoded")
+                     URI.encode_www_form(params)
+                   elsif params.is_a?(String)
+                     params
+                   else
+                     params.to_json
+                   end
+  end
+
+  def add_headers_to_request(request, headers)
+    headers.each { |key, value| request[key] = value }
   end
 
   def validate_host_header(normalized_headers)
