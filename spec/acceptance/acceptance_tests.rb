@@ -53,7 +53,7 @@ describe "Net::HTTP::Ext" do
 
       response = http.post(
         "/resource",
-        params: { name: "test" },
+        payload:,
         headers: { "Content-Type" => "application/json" }
       )
       expect(response).to be_a(Net::HTTPResponse)
@@ -69,7 +69,7 @@ describe "Net::HTTP::Ext" do
 
       response = http.put(
         "/resource",
-        params: { name: "updated" },
+        payload:,
         headers: { "Content-Type" => "application/json" }
       )
       expect(response).to be_a(Net::HTTPResponse)
@@ -85,7 +85,7 @@ describe "Net::HTTP::Ext" do
 
       response = http.patch(
         "/resource",
-        params: payload,
+        payload:,
         headers: { "Content-Type" => "application/json" }
       )
       expect(response).to be_a(Net::HTTPResponse)

@@ -124,7 +124,7 @@ class Net::HTTP::Ext
   #   client = Net::HTTP::Ext.new("https://api.example.com")
   #   response = client.head("/users")
   def head(path, headers: {}, params: {})
-    request(:head, path, headers: headers, params: params)
+    request(:head, path, headers: headers, body: params)
   end
 
   # @param path [String] The path to request
@@ -135,51 +135,56 @@ class Net::HTTP::Ext
   #   client = Net::HTTP::Ext.new("https://api.example.com")
   #   response = client.get("/users")
   def get(path, headers: {}, params: {})
-    request(:get, path, headers: headers, params: params)
+    request(:get, path, headers: headers, body: params)
   end
 
   # @param path [String] The path to request
   # @param headers [Hash] Additional headers for this request
-  # @param params [Hash, String] Parameters to send as request body
+  # @param payload [Hash, String] Parameters to send as request body
+  # @param params [Hash] Parameters to send as query parameters (deprecated - use payload instead)
   # @return [Net::HTTPResponse] The HTTP response
   # @example Create a new resource
   #   client = Net::HTTP::Ext.new("https://api.example.com")
-  #   response = client.post("/users", params: {name: "John", email: "john@example.com"})
-  def post(path, headers: {}, params: {})
-    request(:post, path, headers: headers, params: params)
+  #   response = client.post("/users", payload: {name: "John", email: "john@example.com"})
+  def post(path, headers: {}, params: nil, payload: nil)
+    request(:post, path, headers: headers, body: payload || params)
   end
 
   # @param path [String] The path to request
   # @param headers [Hash] Additional headers for this request
-  # @param params [Hash, String] Parameters to send as request body
+  # @param payload [Hash, String] Parameters to send as request body
+  # @param params [Hash] Parameters to send as query parameters (deprecated - use payload instead)
   # @return [Net::HTTPResponse] The HTTP response
   # @example Update a resource
   #   client = Net::HTTP::Ext.new("https://api.example.com")
-  #   response = client.put("/users/123", params: {name: "John Updated"})
-  def put(path, headers: {}, params: {})
-    request(:put, path, headers: headers, params: params)
+  #   response = client.put("/users/123", payload: {name: "John Updated"})
+  def put(path, headers: {}, params: nil, payload: nil)
+    request(:put, path, headers: headers, body: payload || params)
   end
 
   # @param path [String] The path to request
   # @param headers [Hash] Additional headers for this request
-  # @param params [Hash, String] Parameters to send as query parameters
+  # @param payload [Hash, String] Parameters to send as request body
+  # @param params [Hash] Parameters to send as query parameters (deprecated - use payload instead)
   # @return [Net::HTTPResponse] The HTTP response
   # @example Delete a resource
   #   client = Net::HTTP::Ext.new("https://api.example.com")
   #   response = client.delete("/users/123")
-  def delete(path, headers: {}, params: {})
-    request(:delete, path, headers: headers, params: params)
+  #   response = client.delete("/users/123", payload: {confirm: true})
+  def delete(path, headers: {}, params: nil, payload: nil)
+    request(:delete, path, headers: headers, body: payload || params)
   end
 
   # @param path [String] The path to request
   # @param headers [Hash] Additional headers for this request
-  # @param params [Hash, String] Parameters to send as request body
+  # @param payload [Hash, String] Parameters to send as request body
+  # @param params [Hash] Parameters to send as query parameters (deprecated - use payload instead)
   # @return [Net::HTTPResponse] The HTTP response
   # @example Partially update a resource
   #   client = Net::HTTP::Ext.new("https://api.example.com")
-  #   response = client.patch("/users/123", params: {status: "inactive"})
-  def patch(path, headers: {}, params: {})
-    request(:patch, path, headers: headers, params: params)
+  #   response = client.patch("/users/123", payload: {status: "inactive"})
+  def patch(path, headers: {}, params: nil, payload: nil)
+    request(:patch, path, headers: headers, body: payload || params)
   end
 
   # @param path [String] The path to request
@@ -278,9 +283,9 @@ class Net::HTTP::Ext
   # @param method [Symbol] HTTP method (:get, :post, etc)
   # @param path [String] Request path
   # @param headers [Hash] Request headers
-  # @param params [Hash] Request parameters or body
+  # @param params [Hash] Request parameters or body (optional)
   # @return [Net::HTTP::Request] The prepared request object
-  def build_request(method, path, headers: {}, params: {})
+  def build_request(method, path, headers: {}, params: nil)
     validate_querystring(path, params)
 
     normalized_headers = prepare_headers(headers)
@@ -291,7 +296,7 @@ class Net::HTTP::Ext
   end
 
   def validate_querystring(path, params)
-    if path.include?("?") && !params.empty?
+    if path.include?("?") && params && !params.empty?
       raise ArgumentError, "Querystring must be sent via `params` or `path` but not both."
     end
   end
@@ -315,7 +320,7 @@ class Net::HTTP::Ext
   end
 
   def set_request_body(request, params, headers)
-    return if params.empty?
+    return if params.nil? || params.empty?
 
     content_type = headers["content-type"]
     request.body = if content_type.nil?
@@ -352,10 +357,10 @@ class Net::HTTP::Ext
   # @param method [Symbol] HTTP method (:get, :post, etc)
   # @param path [String] Request path
   # @param headers [Hash] Request headers
-  # @param params [Hash] Request parameters or body
+  # @param body [Hash] Request parameters or body (optional)
   # @return [Net::HTTPResponse] The HTTP response
-  def request(method, path, headers: {}, params: {})
-    req = build_request(method, path, headers: headers, params: params)
+  def request(method, path, headers: {}, body: nil)
+    req = build_request(method, path, headers: headers, params: body)
     retries = 0
     start_time = Time.now
 
