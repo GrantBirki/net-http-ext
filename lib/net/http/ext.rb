@@ -328,11 +328,13 @@ class Net::HTTP::Ext
       if params.is_a?(String)
         # Use the string directly
         request.body = params
-        # Set content-type if not present
+        # Set content-type if not present (use lowercase for consistency)
         headers["content-type"] ||= "application/octet-stream"
       else
         # Get content type, normalize by downcasing and trimming
-        content_type = headers["content-type"]&.downcase&.strip
+        # First, find the content-type key in a case-insensitive way
+        content_type_key = headers.keys.find { |k| k.to_s.downcase == "content-type" }
+        content_type = content_type_key ? headers[content_type_key].downcase.strip : nil
 
         # Handle different content types for non-string params
         request.body = case
