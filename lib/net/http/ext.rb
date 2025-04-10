@@ -3,7 +3,7 @@
 # Example usage:
 #
 # # Basic usage
-# client = HTTP::Client.new("https://api.example.com")
+# client = Net::HTTP::Ext.new("https://api.example.com")
 # response = client.get("/users")
 # puts response.body
 #
@@ -18,7 +18,7 @@
 #   params: {name: "John Doe", email: "john@example.com"})
 #
 # # With custom timeouts
-# client = HTTP::Client.new("https://api.example.com",
+# client = Net::HTTP::Ext.new("https://api.example.com",
 #   open_timeout: 5,     # connection establishment timeout (seconds)
 #   read_timeout: 10,    # response read timeout (seconds)
 #   idle_timeout: 30,  # how long to keep idle connections open (seconds)
@@ -26,7 +26,7 @@
 # )
 #
 # # With default headers (applied to all requests)
-# client = HTTP::Client.new("https://api.example.com",
+# client = Net::HTTP::Ext.new("https://api.example.com",
 #   default_headers: {
 #     "User-Agent" => "MyApp/1.0",
 #     "Authorization" => "Bearer default-token"
@@ -77,7 +77,7 @@ class Net::HTTP::Ext
   # @param ssl_cert_file [String] Path to a custom CA certificate file (optional)
   # @param **options Additional options passed directly to Net::HTTP::Persistent
   # Example:
-  # client = HTTP::Client.new("https://api.example.com", proxy: URI("http://proxy.example.com:8080"))
+  # client = Net::HTTP::Ext.new("https://api.example.com", proxy: URI("http://proxy.example.com:8080"))
   def initialize(
     endpoint,
     name: nil,
