@@ -234,19 +234,7 @@ class Net::HTTP::Ext
     http.idle_timeout = options[:idle_timeout] if options.key?(:idle_timeout)
 
     # Configure SSL if using HTTPS with safe defaults
-    if @uri.scheme == "https"
-      # Default to VERIFY_PEER unless explicitly overridden
-      http.verify_mode = options.fetch(:verify_mode, OpenSSL::SSL::VERIFY_PEER)
-
-      # Default to verifying the hostname unless explicitly disabled
-      http.verify_hostname = options.fetch(:verify_hostname, true) if http.respond_to?(:verify_hostname=)
-
-      # Default to TLS 1.2 unless explicitly overridden
-      http.ssl_version = options.fetch(:ssl_version, :TLSv1_2)
-
-      # Use the provided CA file or fallback to the default
-      http.ca_file = options.fetch(:ca_file, @ssl_cert_file) if options.fetch(:ca_file, @ssl_cert_file)
-    end
+    configure_ssl(http, options)
 
     # Apply any other options that might be supported as attributes
     options.each do |key, value|
@@ -450,6 +438,15 @@ class Net::HTTP::Ext
         raise
       end
     end
+  end
+
+  def configure_ssl(http, options)
+    return unless @uri.scheme == "https"
+
+    http.verify_mode = options.fetch(:verify_mode, OpenSSL::SSL::VERIFY_PEER)
+    http.verify_hostname = options.fetch(:verify_hostname, true) if http.respond_to?(:verify_hostname=)
+    http.ssl_version = options.fetch(:ssl_version, :TLSv1_2)
+    http.ca_file = options.fetch(:ca_file, @ssl_cert_file) if options.fetch(:ca_file, @ssl_cert_file)
   end
 
   # Format duration in milliseconds
