@@ -96,6 +96,19 @@ describe Net::HTTP::Ext do
     end
   end
 
+  describe "default to https scheme if a bare domain is provided" do
+    let(:bare_domain) { "foo.local" }
+    let(:https_endpoint) { "https://#{bare_domain}" }
+    let(:http_client) { Net::HTTP::Ext.new(bare_domain, log:, name:) }
+
+    it "sets the endpoint to HTTPS if a bare domain is provided" do
+      expect(http_client.instance_variable_get(:@uri)).to eq(URI.parse(https_endpoint))
+      expect(http_client.http.ssl_version).to eq(:TLSv1_2)
+      expect(http_client.http.verify_mode).to eq(OpenSSL::SSL::VERIFY_PEER)
+      expect(http_client.http.verify_hostname).to eq(true)
+    end
+  end
+
   describe "https" do
     let(:https_endpoint) { "https://#{name}.local" }
     let(:https_client) { Net::HTTP::Ext.new(https_endpoint, log:, name:) }

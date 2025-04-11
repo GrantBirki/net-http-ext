@@ -94,6 +94,9 @@ class Net::HTTP::Ext
     ssl_cert_file: nil,
     **options
   )
+    # Add "https://" if the endpoint does not include a scheme
+    endpoint = "https://#{endpoint}" unless endpoint.start_with?("http://", "https://")
+
     @uri = URI.parse(endpoint)
     @name = name || ENV.fetch("HTTP_CLIENT_NAME", "http-client")
     @request_timeout = request_timeout
