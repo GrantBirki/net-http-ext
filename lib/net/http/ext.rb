@@ -197,8 +197,6 @@ class Net::HTTP::Ext
   def get_json(path, headers: {}, params: {})
     response = get(path, headers: headers, params: params)
     JSON.parse(response.body)
-  rescue JSON::ParserError => e
-    raise PersistentHTTP::RequestError, "Invalid JSON response: #{e.message}"
   end
 
   # Set or update default headers
@@ -323,6 +321,9 @@ class Net::HTTP::Ext
     # Early return for nil or empty params
     return if params.nil? || (params.respond_to?(:empty?) && params.empty?)
 
+    # normalize headers to an empty hash if nil
+    headers = {} if headers.nil?
+
     begin
       # First handle the case where params is already a string
       if params.is_a?(String)
@@ -355,10 +356,10 @@ class Net::HTTP::Ext
         when content_type.start_with?("application/json")
           serialize_to_json(params)
 
-        # Any other content type - try to convert to JSON as fallback
+        # Any other content type - use what's provided
         else
           # For other content types, use the provided format but log a warning
-          @log.warn("Unknown content-type: #{content_type}, attempting to serialize as JSON")
+          @log.debug("Unknown content-type: #{content_type}, attempting to serialize as JSON")
           serialize_to_json(params)
         end
       end
@@ -416,10 +417,12 @@ class Net::HTTP::Ext
   # @return [Net::HTTPResponse] The HTTP response
   def request(method, path, headers: {}, body: nil)
     req = build_request(method, path, headers: headers, params: body)
+    attempts = 0
     retries = 0
     start_time = Time.now
 
     begin
+      attempts += 1
       response = if @request_timeout
                    Timeout.timeout(@request_timeout) do
                      @http.request(@uri, req)
@@ -443,7 +446,7 @@ class Net::HTTP::Ext
         retry
       else
         duration = Time.now - start_time
-        @log.error("Connection failed after #{retries} retries (#{format_duration_ms(duration)}): #{e.message}")
+        @log.error("Connection failed after #{retries - 1} retries (#{format_duration_ms(duration)}): #{e.message}")
         raise
       end
     end
