@@ -1,8 +1,9 @@
 FROM ruby:3.4.2-slim@sha256:342bfeb04d3660045ceba063197d22baafec6b163f019714ddf8fc83c59aabee
 
-RUN apt-get -y update && apt-get -y upgrade
-
-RUN apt-get install -y make gcc curl build-essential g++ libyaml-dev libgmp-dev libxml2-dev libxslt1-dev
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential libyaml-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
