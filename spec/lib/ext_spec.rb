@@ -325,6 +325,41 @@ describe Net::HTTP::Ext do
         expect(json).to eq(obj.to_json)
       end
 
+      it "serialized an object that responds to to_h to JSON" do
+        obj = double("Object", to_h: { key: "value" })
+        json = subject.send(:serialize_to_json, obj)
+        expect(json).to eq(obj.to_h.to_json)
+      end
+
+      it "fails to serialize an object that does not respond to to_h or to_json" do
+        obj = double("Object")
+        # Explicitly prevent the object from responding to to_json
+        allow(obj).to receive(:respond_to?).with(:to_h).and_return(false)
+        allow(obj).to receive(:respond_to?).with(:to_json).and_return(false)
+
+        expect {
+          subject.send(:serialize_to_json, obj)
+        }.to raise_error(ArgumentError, /Cannot convert/)  # Match the actual error message
+      end
+
+      it "raises a friendly ArgumentError when JSON::GeneratorError occurs" do
+        # Create an object that will trigger a JSON::GeneratorError
+        bad_json_obj = double("BadJsonObject")
+
+        # Make it respond to to_json (so it passes the respond_to? check)
+        allow(bad_json_obj).to receive(:respond_to?).with(:to_h).and_return(false)
+        allow(bad_json_obj).to receive(:respond_to?).with(:to_json).and_return(true)
+
+        # But when to_json is actually called, raise a JSON::GeneratorError
+        allow(bad_json_obj).to receive(:to_json).and_raise(
+          JSON::GeneratorError.new("Cannot serialize special object")
+        )
+
+        expect {
+          subject.send(:serialize_to_json, bad_json_obj)
+        }.to raise_error(ArgumentError, /Invalid JSON data: Cannot serialize special object/)
+      end
+
       it "serializes pretty much everything to json" do
         obj = StandardError.new("error")
         expect(subject.send(:serialize_to_json, obj)).to eq("\"error\"")
