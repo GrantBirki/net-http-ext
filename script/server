@@ -4,4 +4,4 @@ set -e
 
 source script/env "$@"
 
-bundle exec puma config.ru --tag net-http-ext --config config/puma.rb
+bundle exec puma spec/acceptance/server/config.ru --tag net-http-ext --config spec/acceptance/config/puma.rb

@@ -124,7 +124,7 @@ class Net::HTTP::Ext
   #   client = Net::HTTP::Ext.new("https://api.example.com")
   #   response = client.head("/users")
   def head(path, headers: {}, params: {})
-    request(:head, path, headers: headers, params: params)
+    request(:head, path, headers: headers, body: params)
   end
 
   # @param path [String] The path to request
@@ -135,51 +135,56 @@ class Net::HTTP::Ext
   #   client = Net::HTTP::Ext.new("https://api.example.com")
   #   response = client.get("/users")
   def get(path, headers: {}, params: {})
-    request(:get, path, headers: headers, params: params)
+    request(:get, path, headers: headers, body: params)
   end
 
   # @param path [String] The path to request
   # @param headers [Hash] Additional headers for this request
-  # @param params [Hash, String] Parameters to send as request body
+  # @param payload [Hash, String] Parameters to send as request body
+  # @param params [Hash] Parameters to send as query parameters (deprecated - use payload instead)
   # @return [Net::HTTPResponse] The HTTP response
   # @example Create a new resource
   #   client = Net::HTTP::Ext.new("https://api.example.com")
-  #   response = client.post("/users", params: {name: "John", email: "john@example.com"})
-  def post(path, headers: {}, params: {})
-    request(:post, path, headers: headers, params: params)
+  #   response = client.post("/users", payload: {name: "John", email: "john@example.com"})
+  def post(path, headers: {}, params: nil, payload: nil)
+    request(:post, path, headers: headers, body: payload || params)
   end
 
   # @param path [String] The path to request
   # @param headers [Hash] Additional headers for this request
-  # @param params [Hash, String] Parameters to send as request body
+  # @param payload [Hash, String] Parameters to send as request body
+  # @param params [Hash] Parameters to send as query parameters (deprecated - use payload instead)
   # @return [Net::HTTPResponse] The HTTP response
   # @example Update a resource
   #   client = Net::HTTP::Ext.new("https://api.example.com")
-  #   response = client.put("/users/123", params: {name: "John Updated"})
-  def put(path, headers: {}, params: {})
-    request(:put, path, headers: headers, params: params)
+  #   response = client.put("/users/123", payload: {name: "John Updated"})
+  def put(path, headers: {}, params: nil, payload: nil)
+    request(:put, path, headers: headers, body: payload || params)
   end
 
   # @param path [String] The path to request
   # @param headers [Hash] Additional headers for this request
-  # @param params [Hash, String] Parameters to send as query parameters
+  # @param payload [Hash, String] Parameters to send as request body
+  # @param params [Hash] Parameters to send as query parameters (deprecated - use payload instead)
   # @return [Net::HTTPResponse] The HTTP response
   # @example Delete a resource
   #   client = Net::HTTP::Ext.new("https://api.example.com")
   #   response = client.delete("/users/123")
-  def delete(path, headers: {}, params: {})
-    request(:delete, path, headers: headers, params: params)
+  #   response = client.delete("/users/123", payload: {confirm: true})
+  def delete(path, headers: {}, params: nil, payload: nil)
+    request(:delete, path, headers: headers, body: payload || params)
   end
 
   # @param path [String] The path to request
   # @param headers [Hash] Additional headers for this request
-  # @param params [Hash, String] Parameters to send as request body
+  # @param payload [Hash, String] Parameters to send as request body
+  # @param params [Hash] Parameters to send as query parameters (deprecated - use payload instead)
   # @return [Net::HTTPResponse] The HTTP response
   # @example Partially update a resource
   #   client = Net::HTTP::Ext.new("https://api.example.com")
-  #   response = client.patch("/users/123", params: {status: "inactive"})
-  def patch(path, headers: {}, params: {})
-    request(:patch, path, headers: headers, params: params)
+  #   response = client.patch("/users/123", payload: {status: "inactive"})
+  def patch(path, headers: {}, params: nil, payload: nil)
+    request(:patch, path, headers: headers, body: payload || params)
   end
 
   # @param path [String] The path to request
@@ -192,8 +197,6 @@ class Net::HTTP::Ext
   def get_json(path, headers: {}, params: {})
     response = get(path, headers: headers, params: params)
     JSON.parse(response.body)
-  rescue JSON::ParserError => e
-    raise PersistentHTTP::RequestError, "Invalid JSON response: #{e.message}"
   end
 
   # Set or update default headers
@@ -278,47 +281,118 @@ class Net::HTTP::Ext
   # @param method [Symbol] HTTP method (:get, :post, etc)
   # @param path [String] Request path
   # @param headers [Hash] Request headers
-  # @param params [Hash] Request parameters or body
+  # @param params [Hash] Request parameters or body (optional)
   # @return [Net::HTTP::Request] The prepared request object
-  def build_request(method, path, headers: {}, params: {})
-    if path.include?("?") && !params.empty?
-      raise ArgumentError,
-            "Querystring must be sent via `params` or `path` but not both."
-    end
+  def build_request(method, path, headers: {}, params: nil)
+    validate_querystring(path, params)
 
-    # Merge and normalize headers (default headers < request-specific headers)
+    normalized_headers = prepare_headers(headers)
+    request = initialize_request(method, path, params, normalized_headers)
+
+    add_headers_to_request(request, normalized_headers)
+    request
+  end
+
+  def validate_querystring(path, params)
+    if path.include?("?") && params && !params.empty?
+      raise ArgumentError, "Querystring must be sent via `params` or `path` but not both."
+    end
+  end
+
+  def prepare_headers(headers)
     normalized_headers = @default_headers.dup
-    normalize_headers(headers).each do |key, value|
-      normalized_headers[key] = value
-    end
+    normalize_headers(headers).each { |key, value| normalized_headers[key] = value }
+    validate_host_header(normalized_headers)
+  end
 
-    normalized_headers = validate_host_header(normalized_headers)
-
+  def initialize_request(method, path, params, headers)
     case method
     when :get, :head
       full_path = encode_path_params(path, params)
-      request = VERB_MAP[method].new(full_path)
+      VERB_MAP[method].new(full_path)
     else
       request = VERB_MAP[method].new(path)
+      set_request_body(request, params, headers)
+      request
+    end
+  end
 
-      unless params.empty?
-        if !normalized_headers.key?("content-type")
-          normalized_headers["content-type"] = "application/json"
-          request.body = params.to_json
-        elsif normalized_headers["content-type"].include?("x-www-form-urlencoded")
-          request.body = URI.encode_www_form(params)
-        elsif params.is_a?(String)
-          request.body = params
+  def set_request_body(request, params, headers)
+    # Early return for nil or empty params
+    return if params.nil? || (params.respond_to?(:empty?) && params.empty?)
+
+    # normalize headers to an empty hash if nil
+    headers = {} if headers.nil?
+
+    begin
+      # First handle the case where params is already a string
+      if params.is_a?(String)
+        # Use the string directly
+        request.body = params
+        # Set content-type if not present (use lowercase for consistency)
+        headers["content-type"] ||= "application/octet-stream"
+      else
+        # Get content type, normalize by downcasing and trimming
+        # First, find the content-type key in a case-insensitive way
+        content_type_key = headers.keys.find { |k| k.to_s.downcase == "content-type" }
+        content_type = content_type_key ? headers[content_type_key].downcase.strip : nil
+
+        # Handle different content types for non-string params
+        request.body = case
+        # No content type specified - use JSON as default
+        when content_type.nil?
+          headers["content-type"] = "application/json"
+          serialize_to_json(params)
+
+        # Form URL-encoded content
+        when content_type.start_with?("application/x-www-form-urlencoded")
+          if params.respond_to?(:to_h)
+            URI.encode_www_form(params.to_h)
+          else
+            raise ArgumentError, "Parameters must be Hash-like for form URL-encoded requests, got #{params.class}"
+          end
+
+        # JSON content type
+        when content_type.start_with?("application/json")
+          serialize_to_json(params)
+
+        # Any other content type - use what's provided
         else
-          request.body = params.to_json
+          # For other content types, use the provided format but log a warning
+          @log.debug("Unknown content-type: #{content_type}, attempting to serialize as JSON")
+          serialize_to_json(params)
         end
       end
+
+      # Set content length based on the body if not already set
+      request["Content-Length"] ||= request.body.bytesize.to_s if request.body
+    rescue => e
+      error_message = "Failed to set request body: #{e.message}"
+      @log.error(error_message)
+      raise ArgumentError, error_message
     end
+  end
 
-    # Add normalized headers to request
-    normalized_headers.each { |key, value| request[key] = value }
+  # Helper method to safely serialize objects to JSON
+  def serialize_to_json(obj)
+    begin
+      case obj
+      when Hash, Array
+        obj.to_json
+      when ->(o) { o.respond_to?(:to_h) }
+        obj.to_h.to_json
+      when ->(o) { o.respond_to?(:to_json) }
+        obj.to_json
+      else
+        raise ArgumentError, "Cannot convert #{obj.class} to JSON"
+      end
+    rescue JSON::GeneratorError => e
+      raise ArgumentError, "Invalid JSON data: #{e.message}"
+    end
+  end
 
-    request
+  def add_headers_to_request(request, headers)
+    headers.each { |key, value| request[key] = value }
   end
 
   def validate_host_header(normalized_headers)
@@ -339,14 +413,16 @@ class Net::HTTP::Ext
   # @param method [Symbol] HTTP method (:get, :post, etc)
   # @param path [String] Request path
   # @param headers [Hash] Request headers
-  # @param params [Hash] Request parameters or body
+  # @param body [Hash] Request parameters or body (optional)
   # @return [Net::HTTPResponse] The HTTP response
-  def request(method, path, headers: {}, params: {})
-    req = build_request(method, path, headers: headers, params: params)
+  def request(method, path, headers: {}, body: nil)
+    req = build_request(method, path, headers: headers, params: body)
+    attempts = 0
     retries = 0
     start_time = Time.now
 
     begin
+      attempts += 1
       response = if @request_timeout
                    Timeout.timeout(@request_timeout) do
                      @http.request(@uri, req)
@@ -370,7 +446,7 @@ class Net::HTTP::Ext
         retry
       else
         duration = Time.now - start_time
-        @log.error("Connection failed after #{retries} retries (#{format_duration_ms(duration)}): #{e.message}")
+        @log.error("Connection failed after #{retries - 1} retries (#{format_duration_ms(duration)}): #{e.message}")
         raise
       end
     end
