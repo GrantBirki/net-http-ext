@@ -8,64 +8,18 @@ on:
     paths:
       - lib/net/http/version.rb
 
-permissions:
-  contents: write
-  packages: write
-  id-token: write
-  attestations: write
+permissions: {}
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - uses: ruby/setup-ruby@354a1ad156761f5ee2b7b13fa8e09943a5e8d252 # pin@v1.229.0
-        with:
-          bundler-cache: false
-
-      - name: bootstrap
-        run: script/bootstrap
-
-      # builds the gem and saves the name + version to GITHUB_OUTPUT
-      - name: build
-        id: build
-        run: script/build
-
-      - uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: "${{ steps.build.outputs.gem_name }}-${{ steps.build.outputs.gem_version }}.gem"
-
-      - name: release
-        env:
-          GEM_NAME: ${{ steps.build.outputs.gem_name }}
-          GEM_VERSION: ${{ steps.build.outputs.gem_version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "v${GEM_VERSION}" \
-            "${GEM_NAME}-${GEM_VERSION}.gem" \
-            --title "v${GEM_VERSION}" \
-            --generate-notes
-
-      - name: publish to GitHub packages
-        env:
-          OWNER: ${{ github.repository_owner }}
-          GEM_NAME: ${{ steps.build.outputs.gem_name }}
-          GEM_VERSION: ${{ steps.build.outputs.gem_version }}
-        run: |
-          GEM_HOST_API_KEY=${{ secrets.GITHUB_TOKEN }} gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} ${GEM_NAME}-${GEM_VERSION}.gem
-
-      - name: publish to RubyGems
-        env:
-          GEM_NAME: ${{ steps.build.outputs.gem_name }}
-          GEM_VERSION: ${{ steps.build.outputs.gem_version }}
-        run: |
-          mkdir -p ~/.gem
-          echo -e "---\n:rubygems_api_key: ${{ secrets.RUBYGEMS_API_KEY }}" > ~/.gem/credentials
-          chmod 0600 ~/.gem/credentials
-          gem push ${GEM_NAME}-${GEM_VERSION}.gem
-          rm ~/.gem/credentials
+    permissions:
+      contents: write
+      id-token: write
+      packages: write
+      attestations: write
+    uses: github/salsa/.github/workflows/ruby.yml@main
+    with:
+      bootstrap_script: script/bootstrap
+      build_script: script/build
+    secrets:
+      RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
