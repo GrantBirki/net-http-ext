@@ -17,7 +17,7 @@ jobs:
       id-token: write
       packages: write
       attestations: write
-    uses: github/salsa/.github/workflows/ruby.yml@f421440f028d1cfe7f491d6f57ff0796fad183b4 # pin@main
+    uses: github/salsa/.github/workflows/ruby.yml@71b69de4b69b37bbbeae5a7d2fec9d7aab05bc30 # pin@main
     with:
       bootstrap_script: script/bootstrap
       build_script: script/build
