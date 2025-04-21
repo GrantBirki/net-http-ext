@@ -28,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ruby/setup-ruby@d8d83c3960843afb664e821fed6be52f37da5267 # pin@v1.231.0
+      - uses: ruby/setup-ruby@ca041f971d66735f3e5ff1e21cc13e2d51e7e535 # pin@v1.233.0
         with:
           bundler-cache: false
 
@@ -62,7 +62,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/download-artifact@54124fbd881f8ce794405a06896c93c49c17463e
+      - uses: actions/download-artifact@d219c630f65d8bd14366a9e2f731cbf854f62258
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
 
@@ -76,7 +76,7 @@ jobs:
         run: |
           GEM_HOST_API_KEY=${GITHUB_TOKEN} gem push --key github --host https://rubygems.pkg.github.com/${OWNER} $ARTIFACT_PATH/${GEM_NAME}-${GEM_VERSION}.gem
 
-      - uses: ruby/setup-ruby@d8d83c3960843afb664e821fed6be52f37da5267 # pin@v1.231.0
+      - uses: ruby/setup-ruby@ca041f971d66735f3e5ff1e21cc13e2d51e7e535 # pin@v1.233.0
         with:
           bundler-cache: false
 
@@ -128,7 +128,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/download-artifact@54124fbd881f8ce794405a06896c93c49c17463e
+      - uses: actions/download-artifact@d219c630f65d8bd14366a9e2f731cbf854f62258
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
 
@@ -143,7 +143,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@54124fbd881f8ce794405a06896c93c49c17463e
+      - uses: actions/download-artifact@d219c630f65d8bd14366a9e2f731cbf854f62258
         with:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
 
