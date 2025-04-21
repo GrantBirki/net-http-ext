@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - lib/version.rb
+      - lib/net/http/version.rb
 
 permissions: {}
 
