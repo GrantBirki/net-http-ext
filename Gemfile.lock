@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    net-http-ext (1.0.6)
+    net-http-ext (1.0.7)
       json (~> 2.10, >= 2.10.2)
       logger (~> 1)
       net-http-persistent (~> 4.0, >= 4.0.5)
