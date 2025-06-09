@@ -46,10 +46,10 @@ if [ "$CI" == "true" ]; then
   echo -e "${PURPLE}[#]${OFF} ${BLUE}Docker container stats${OFF}"
   docker stats --no-stream
 
-  echo -e "${PURPLE}[#]${OFF} ${BLUE}Docker container inspect shells-api${OFF}"
+  echo -e "${PURPLE}[#]${OFF} ${BLUE}Docker container inspect${OFF}"
   docker inspect server
 
-  echo -e "${PURPLE}[#]${OFF} ${BLUE}Docker container logs shells-api${OFF}"
+  echo -e "${PURPLE}[#]${OFF} ${BLUE}Docker container logs${OFF}"
   docker compose logs server
 fi
 
