@@ -14,7 +14,7 @@ A simple wrapper around [`net/http/persistent`](https://github.com/drbrain/net-h
 
 A very simple wrapper around the `net/http/persistent` library (which is a wrapper around `net/http`) that provides a few extra features and safe defaults. It is designed to be a *lite*-batteries-included version of `net/http/persistent` that is easy to use and configure.
 
-Should you need anything more complex, check out [`faraday`](https://github.com/lostisland/faraday) + [`araday-net_http_persistent`](https://github.com/lostisland/faraday-net_http_persistent).
+Should you need anything more complex, check out [`faraday`](https://github.com/lostisland/faraday) + [`faraday-net_http_persistent`](https://github.com/lostisland/faraday-net_http_persistent).
 
 ### Benefits ⭐
 
