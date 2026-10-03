@@ -10,6 +10,8 @@ on:
 
 permissions: {}
 
+cache-mode: none
+
 jobs:
   build:
     if: github.repository == 'grantbirki/net-http-ext'
